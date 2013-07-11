@@ -7,31 +7,30 @@ Emacs mode to play audio notes synced from somewhere else.
 Commentary:
 ===
 
-`audio-notes-mode` is a way to managed small audio recordings that
-you make in order to record thoughts.
+`audio-notes-mode` is a way to managed small audio recordings that you
+make in order to record thoughts.
 
-After much struggle, I finally decided to stop trying to make
-speech recognition work from my phone. Instead, I decided to just
-record audio notes, and I wrote this package to automate the
-process of playing them back at the computer.
+After much struggle, I finally decided to stop trying to make speech
+recognition work from my phone. Instead, I decided to just record
+audio notes, and I wrote this package to automate the process of
+playing them back at the computer.
 
-I found this to be even faster, because I don't have to wait and
-see if the speech recognition worked and I don't have to repeat the
+I found this to be even faster, because I don't have to wait and see
+if the speech recognition worked and I don't have to repeat the
 message 1/3 of the time.
 
 A tasker profile (which records and uploads these notes) is also
 provided at the github page.
 
-The idea is that you sync voice notes you record on your
-smartphone into a directory on your PC. But you're free to use it
-in other ways.
+The idea is that you sync voice notes you record on your smartphone
+into a directory on your PC. But you're free to use it in other ways.
 
 When you activate this mode, it will play the first audio note in a
 specific directory and wait for you to write it down. Once you're
-finished, just call the next note with \\[anm/play-next]. When you
-do this, `audio-notes-mode` will DELETE the note which was already
-played and start playing the next one. Once you've gone through all
-of them, `audio-notes-mode` deactivates itself.
+finished, just call the next note with \\[anm/play-next]. When you do
+this, `audio-notes-mode` will DELETE the note which was already played
+and start playing the next one. Once you've gone through all of them,
+`audio-notes-mode` deactivates itself.
 
 Instructions:
 ===
@@ -42,13 +41,15 @@ Configuration is simple. Require the package and define the following two variab
     (setq anm/goto-file "~/path/to/file.org") ;File in which you'll write your notes as they are played.
 
 Then just choose how you want to activate it.
-1) If you use `org-mobile-pull`, you can do
+
+1) If you use `org-mobile-pull`, you can make `audio-notes-mode`
+   activate whenever you call org-mobile-pull.
+
     (setq anm/hook-into-org-pull t)
-   and `audio-notes-mode` will activate whenever you call
-   org-mobile-pull.
-   
-2) The second options is to just bind `audio-notes-mode` to
-   some key and call it when you want.
+    
+2) The second options is to just bind `audio-notes-mode` to some key
+   and call it when you want.
+
     (global-set-key [f8] 'audio-notes-mode)
 
 If you installed manually, first require the feature with:
@@ -59,13 +60,13 @@ License:
 
 This file is NOT part of GNU Emacs.
 
-This program is free softwareyou can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundationeither version 2
-of the License, or (at your option) any later version.
+This program is free softwareyou can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundationeither version 2 of the License, or (at your
+option) any later version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTYwithout even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTYwithout even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
 

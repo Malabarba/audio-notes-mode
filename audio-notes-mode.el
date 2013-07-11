@@ -157,17 +157,22 @@ Default is to play only mp4, mp3 and wav, and to exclude hidden files."
   :group 'audio-notes-mode
   :package-version '(audio-notes-mode . "0.1"))
 
-(defcustom anm/player (if (fboundp 'play-sound-internal) 'internal "mplayer")
+(defcustom anm/player-command (if (executable-find "mplayer") "mplayer" 'internal)
   "Which player to use for the audio files.
-If it's the symbol 'internal (default), uses emacs internal player.
-If it's a string, uses that executable on the filesystem."
+If it's the symbol 'internal, uses emacs internal player.
+If it's a string, uses that executable on the filesystem.
+
+Default is \"mplayer\", unless you don't have it, then it's 'internal.
+
+Emacs internal player should be able to play wav files, but not
+mp4, so your decision on which to use should be based on this."
   :type '(choice (const :tag "Emacs internal player" t)
                  (string :tag "Executable name"))
   :group 'audio-notes-mode
   :package-version '(audio-notes-mode . "0.1"))
 
-(defcustom anm/player-args '(file)
-  "Extra arguments to be passed to the audio player in `anm/player'. Filename is added AFTER all of these."
+(defcustom anm/player-command-args '(file)
+  "Extra arguments to be passed to the audio player in `anm/player-command'. Filename is added AFTER all of these."
   :type '(repeat (choice (const :tag "File name" 'file)
                          (string :tag "Extra arguments")))
   :group 'audio-notes-mode
@@ -207,35 +212,49 @@ To disable this message, edit `anm/display-greeting'."
   (anm/play-current))
 
 (defun anm/play-current ()
-  "Play current audio note."
+  "Play current audio note.
+
+If called while a note is already playing, AND if anm/player-command is
+an external command (i.e. it's value is not 'internal), then this
+function stops the playing audio."
   (interactive)
-  (let* ((files (anm/list-files))
-         (file (or anm/current (car files)))
-         (sn (if file (file-name-nondirectory file) "")))
-    (if file
-        (progn
-          (if anm/current
-              (message "Replaying %s" sn)
-            (setq anm/current file)
-            (message "%s notes left. Playing %s" (length files) sn))
-          (with-current-buffer anm/dired-buffer
-            (goto-char (point-min))
-            (search-forward sn)
-            (revert-buffer))
-          (run-hooks anm/before-play-hook)
-          (anm/play-file file)
-          (run-hooks anm/after-play-hook))
-      (message "No more notes. Exiting `audio-notes-mode'.")
-      (audio-notes-mode -1))))
+  (if (and (stringp anm/player-command)
+           (eq (process-status anm/process) 'run))
+      (kill-process anm/process)
+    (let* ((files (anm/list-files))
+           (file (or anm/current (car files)))
+           (sn (if file (file-name-nondirectory file) "")))
+      (if file
+          (progn
+            (if anm/current
+                (message "Replaying %s" sn)
+              (setq anm/current file)
+              (message "%s notes left. Playing %s" (length files) sn))
+            (with-current-buffer anm/dired-buffer
+              (goto-char (point-min))
+              (search-forward sn)
+              (revert-buffer))
+            (run-hooks anm/before-play-hook)
+            (anm/play-file file)
+            (run-hooks anm/after-play-hook))
+        (message "No more notes. Exiting `audio-notes-mode'.")
+        (audio-notes-mode -1)))))
 
 (defun anm/play-file (file)
   "Play sound file."
   (unless (file-readable-p file) (error "FILE isn't a file."))
-  (unless anm/player (error "`anm/player' can't be nil."))
-  (if (eq anm/player 'internal) 
-      (play-sound-file (expand-file-name file))
-    (setq anm/process (eval (concatenate 'list '(start-process "anm/player" anm/process-buffer anm/player)
-                                         (map 'list 'eval anm/player-args))))))
+  (unless anm/player-command (error "`anm/player-command' can't be nil."))
+  (if (eq anm/player-command 'internal) 
+      (condition-case data
+          (play-sound-file (expand-file-name file)) 
+        (error
+         (audio-notes-mode -1)
+         (if (equal (cdr data) '("Unknown sound format"))
+             (error "Oops! Emacs internal player, can't play the format of the file %s.\nChange `anm/player' to a command name (like \"mplayer\")." file)
+           (error (cdr data)))))
+    (setq anm/process (eval (concatenate 'list '(start-process "anm/player-command" anm/process-buffer anm/player-command)
+                                         (map 'list 'eval anm/player-command-args))))
+    (set-process-query-on-exit-flag anm/process nil)))
 
 (defun anm/list-files ()
   "List all non-hidden files in `anm/notes-directory'."
@@ -259,7 +278,7 @@ gone through all of them, `audio-notes-mode' deactivates itself."
   :group 'audio-notes-mode
   (if audio-notes-mode
       ;; ON
-      (if anm/player
+      (if anm/player-command
           (let ((file (car (anm/list-files))))
             (if (not file)
                 (audio-notes-mode -1)
@@ -275,11 +294,12 @@ gone through all of them, `audio-notes-mode' deactivates itself."
                 ;; Created dired window
                 (select-window (split-window-right))
                 (setq anm/dired-buffer (find-file anm/notes-directory))
+                (when (fboundp 'hl-line-mode) (hl-line-mode 1))
                 (revert-buffer)
                 (goto-char (point-min))
                 (search-forward (file-name-nondirectory file))
                 ;; Create process window
-                (when (stringp anm/player)
+                (when (stringp anm/player-command)
                   (setq diredSize (line-number-at-pos (point-max)))
                   (select-window (split-window-below (1- diredSize)))
                   (setq anm/process-buffer
@@ -288,9 +308,9 @@ gone through all of them, `audio-notes-mode' deactivates itself."
                 ;; Back to writing window
                 (select-window focusWin))
               (anm/play-current)))
-        ;; If anm/player was nil
+        ;; If anm/player-command was nil
         (audio-notes-mode -1)
-        (error "`anm/player' can't be nil."))
+        (error "`anm/player-command' can't be nil."))
     ;; OFF
     (setq anm/current nil)
     (when (buffer-live-p anm/process-buffer)
