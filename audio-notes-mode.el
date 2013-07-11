@@ -77,8 +77,6 @@
 ;;; Change Log:
 ;; 0.1 - 20130710 - Created File.
 
-;;; TODO:
-;; keywords
 ;;; Code:
 
 
