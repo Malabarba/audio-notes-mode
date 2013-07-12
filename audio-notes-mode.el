@@ -4,7 +4,7 @@
 
 ;; Author: Artur Malabarba <bruce.connor.am@gmail.com>
 ;; URL: http://github.com/Bruce-Connor/audio-notes-mode
-;; Version: 0.1
+;; Version: 0.5
 ;; Keywords: hypermedia convenience
 ;; ShortName: anm
 ;; Separator: /
@@ -75,14 +75,16 @@
 ;; 
 
 ;;; Change Log:
+;; 0.5 - 20130712 - Added a default player..
+;; 0.5 - 20130712 - Full package functionality implemented.
 ;; 0.1 - 20130710 - Created File.
 
 ;;; Code:
 
 
-(defconst anm/version "0.1" "Version of the audio-notes-mode.el package.")
+(defconst anm/version "0.5" "Version of the audio-notes-mode.el package.")
 
-(defconst anm/version-int 1 "Version of the audio-notes-mode.el package, as an integer.")
+(defconst anm/version-int 2 "Version of the audio-notes-mode.el package, as an integer.")
 
 (defun anm/bug-report ()
   "Opens github issues page in a web browser. Please send me any bugs you find, and please inclue your emacs and anm versions."
@@ -157,26 +159,43 @@ Default is to play only mp4, mp3 and wav, and to exclude hidden files."
   :group 'audio-notes-mode
   :package-version '(audio-notes-mode . "0.1"))
 
-(defcustom anm/player-command (if (executable-find "mplayer") "mplayer" 'internal)
-  "Which player to use for the audio files.
-If it's the symbol 'internal, uses emacs internal player.
-If it's a string, uses that executable on the filesystem.
+(defvar anm/default-mplayer '("mplayer" "-quiet" file) "Default value for `anm/player-command'.")
+(defvar anm/default-vlc '("vlc" file) "Default value for `anm/player-command'.")
 
-Default is \"mplayer\", unless you don't have it, then it's 'internal.
+(defcustom anm/player-command (cond
+                               ((executable-find "mplayer") anm/default-mplayer)
+                               ((executable-find "smplayer") anm/default-smplayer)
+                               ((executable-find "vlc") anm/default-vlc)
+                               'internal)
+  (format
+   "Which media player to use for the audio files, must be a symbol or a list.
+
+If it's the symbol 'internal: uses emacs' internal player.
+
+If it's a list: the first element is the executable name (like
+\"mplayer\") and all following elements are arguments to be
+passed to it. All arguments must either be strings or the symbol
+'file, which will be replaced by the filename (you probably
+should include 'file at least once). For example, the default
+value (if you have mplayer installed) is
+
+    %S
 
 Emacs internal player should be able to play wav files, but not
-mp4, so your decision on which to use should be based on this."
-  :type '(choice (const :tag "Emacs internal player" t)
-                 (string :tag "Executable name"))
+mp4, so your decision on which to use should be based on this." anm/default-mplayer)
+  :type '(choice (const :tag "Emacs internal player" internal)
+                 (cons (string :tag "Executable name")
+                       (repeat (choice (const :tag "File Name" file)
+                                       (string :tag "Other Arguments")))))
   :group 'audio-notes-mode
   :package-version '(audio-notes-mode . "0.1"))
 
-(defcustom anm/player-command-args '(file)
-  "Extra arguments to be passed to the audio player in `anm/player-command'. Filename is added AFTER all of these."
-  :type '(repeat (choice (const :tag "File name" 'file)
-                         (string :tag "Extra arguments")))
-  :group 'audio-notes-mode
-  :package-version '(audio-notes-mode . "0.1"))
+;; (defcustom anm/player-command-args '(file)
+;;   "Extra arguments to be passed to the audio player in `anm/player-command'. Filename is added AFTER all of these."
+;;   :type '(repeat (choice (const :tag "File name" 'file)
+;;                          (string :tag "Extra arguments")))
+;;   :group 'audio-notes-mode
+;;   :package-version '(audio-notes-mode . "0.1"))
 
 (defvar anm/dired-buffer     nil "The buffer displaying the notes.")
 (defvar anm/goto-file-buffer nil "The buffer the user asked to open.")
@@ -218,7 +237,7 @@ If called while a note is already playing, AND if anm/player-command is
 an external command (i.e. it's value is not 'internal), then this
 function stops the playing audio."
   (interactive)
-  (if (and (stringp anm/player-command)
+  (if (and (listp anm/player-command)
            (eq (process-status anm/process) 'run))
       (kill-process anm/process)
     (let* ((files (anm/list-files))
@@ -234,6 +253,7 @@ function stops the playing audio."
               (goto-char (point-min))
               (search-forward sn)
               (revert-buffer))
+            (with-current-buffer anm/process-buffer (erase-buffer))
             (run-hooks anm/before-play-hook)
             (anm/play-file file)
             (run-hooks anm/after-play-hook))
@@ -242,19 +262,23 @@ function stops the playing audio."
 
 (defun anm/play-file (file)
   "Play sound file."
-  (unless (file-readable-p file) (error "FILE isn't a file."))
-  (unless anm/player-command (error "`anm/player-command' can't be nil."))
-  (if (eq anm/player-command 'internal) 
-      (condition-case data
-          (play-sound-file (expand-file-name file)) 
-        (error
-         (audio-notes-mode -1)
-         (if (equal (cdr data) '("Unknown sound format"))
-             (error "Oops! Emacs internal player, can't play the format of the file %s.\nChange `anm/player' to a command name (like \"mplayer\")." file)
-           (error (cdr data)))))
-    (setq anm/process (eval (concatenate 'list '(start-process "anm/player-command" anm/process-buffer anm/player-command)
-                                         (map 'list 'eval anm/player-command-args))))
-    (set-process-query-on-exit-flag anm/process nil)))
+  (unless (file-readable-p file) (audio-notes-mode -1) (error "FILE isn't a file!"))
+  (cond
+   ((eq anm/player-command 'internal) 
+    (condition-case data
+        (play-sound-file (expand-file-name file)) 
+      (error
+       (audio-notes-mode -1)
+       (if (equal (cdr data) '("Unknown sound format"))
+           (error "Oops! Emacs internal player, can't play the format of the file %s.
+Change `anm/player' to a command name (like \"mplayer\")." file)
+         (error (cdr data))))))
+   ((listp anm/player-command)
+    (setq anm/process (eval (concatenate 'list
+                                         '(start-process "anm/player-command" anm/process-buffer)
+                                         (map 'list 'eval anm/player-command))))
+    (set-process-query-on-exit-flag anm/process nil))
+   (t (error "`anm/player-command' invalid: %s" anm/player-command))))
 
 (defun anm/list-files ()
   "List all non-hidden files in `anm/notes-directory'."
@@ -299,7 +323,7 @@ gone through all of them, `audio-notes-mode' deactivates itself."
                 (goto-char (point-min))
                 (search-forward (file-name-nondirectory file))
                 ;; Create process window
-                (when (stringp anm/player-command)
+                (when (listp anm/player-command)
                   (setq diredSize (line-number-at-pos (point-max)))
                   (select-window (split-window-below (1- diredSize)))
                   (setq anm/process-buffer
