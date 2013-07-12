@@ -161,14 +161,8 @@ Default is to play only mp4, mp3 and wav, and to exclude hidden files."
 
 (defvar anm/default-mplayer '("mplayer" "-quiet" file) "Default value for `anm/player-command'.")
 (defvar anm/default-vlc '("vlc" file) "Default value for `anm/player-command'.")
-
-(defcustom anm/player-command (cond
-                               ((executable-find "mplayer") anm/default-mplayer)
-                               ((executable-find "smplayer") anm/default-smplayer)
-                               ((executable-find "vlc") anm/default-vlc)
-                               'internal)
-  (format
-   "Which media player to use for the audio files, must be a symbol or a list.
+(defvar anm/player-command-documentation
+  "Which media player to use for the audio files, must be a symbol or a list.
 
 If it's the symbol 'internal: uses emacs' internal player.
 
@@ -182,20 +176,20 @@ value (if you have mplayer installed) is
     %S
 
 Emacs internal player should be able to play wav files, but not
-mp4, so your decision on which to use should be based on this." anm/default-mplayer)
+mp4, so your decision on which to use should be based on this." "")
+
+(defcustom anm/player-command (cond
+                               ((executable-find "mplayer") anm/default-mplayer)
+                               ((executable-find "smplayer") anm/default-smplayer)
+                               ((executable-find "vlc") anm/default-vlc)
+                               'internal)
+  (format anm/player-command-documentation anm/default-mplayer)
   :type '(choice (const :tag "Emacs internal player" internal)
                  (cons (string :tag "Executable name")
                        (repeat (choice (const :tag "File Name" file)
                                        (string :tag "Other Arguments")))))
   :group 'audio-notes-mode
   :package-version '(audio-notes-mode . "0.1"))
-
-;; (defcustom anm/player-command-args '(file)
-;;   "Extra arguments to be passed to the audio player in `anm/player-command'. Filename is added AFTER all of these."
-;;   :type '(repeat (choice (const :tag "File name" 'file)
-;;                          (string :tag "Extra arguments")))
-;;   :group 'audio-notes-mode
-;;   :package-version '(audio-notes-mode . "0.1"))
 
 (defvar anm/dired-buffer     nil "The buffer displaying the notes.")
 (defvar anm/goto-file-buffer nil "The buffer the user asked to open.")
