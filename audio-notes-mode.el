@@ -4,7 +4,7 @@
 
 ;; Author: Artur Malabarba <bruce.connor.am@gmail.com>
 ;; URL: http://github.com/Bruce-Connor/audio-notes-mode
-;; Version: 0.5
+;; Version: 0.6
 ;; Keywords: hypermedia convenience
 ;; ShortName: anm
 ;; Separator: /
@@ -75,6 +75,7 @@
 ;; 
 
 ;;; Change Log:
+;; 0.6 - 20130712 - bugfix.
 ;; 0.5 - 20130712 - Added a default player..
 ;; 0.5 - 20130712 - Full package functionality implemented.
 ;; 0.1 - 20130710 - Created File.
@@ -82,9 +83,9 @@
 ;;; Code:
 
 
-(defconst anm/version "0.5" "Version of the audio-notes-mode.el package.")
+(defconst anm/version "0.6" "Version of the audio-notes-mode.el package.")
 
-(defconst anm/version-int 2 "Version of the audio-notes-mode.el package, as an integer.")
+(defconst anm/version-int 3 "Version of the audio-notes-mode.el package, as an integer.")
 
 (defun anm/bug-report ()
   "Opens github issues page in a web browser. Please send me any bugs you find, and please inclue your emacs and anm versions."
@@ -194,6 +195,7 @@ mp4, so your decision on which to use should be based on this." "")
 (defvar anm/dired-buffer     nil "The buffer displaying the notes.")
 (defvar anm/goto-file-buffer nil "The buffer the user asked to open.")
 (defvar anm/process-buffer   nil "Process buffer.")
+(defvar anm/process          nil "Process.")
 (defvar anm/current          nil "Currently played file.")
 (defvar anm/did-visit        nil "Did we visit a file and mess up the configuration.")
 (defvar anm/found-files      nil "")
@@ -231,7 +233,7 @@ If called while a note is already playing, AND if anm/player-command is
 an external command (i.e. it's value is not 'internal), then this
 function stops the playing audio."
   (interactive)
-  (if (and (listp anm/player-command)
+  (if (and anm/process (listp anm/player-command)
            (eq (process-status anm/process) 'run))
       (kill-process anm/process)
     (let* ((files (anm/list-files))
