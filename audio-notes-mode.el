@@ -4,7 +4,7 @@
 
 ;; Author: Artur Malabarba <bruce.connor.am@gmail.com>
 ;; URL: http://github.com/Bruce-Connor/audio-notes-mode
-;; Version: 0.6
+;; Version: 0.7
 ;; Keywords: hypermedia convenience
 ;; ShortName: anm
 ;; Separator: /
@@ -75,6 +75,7 @@
 ;; 
 
 ;;; Change Log:
+;; 0.7 - 20130713 - Added a third possibility for hooking on org-pull.
 ;; 0.6 - 20130712 - bugfix.
 ;; 0.5 - 20130712 - Added a default player..
 ;; 0.5 - 20130712 - Full package functionality implemented.
@@ -82,10 +83,9 @@
 
 ;;; Code:
 
+(defconst anm/version "0.7" "Version of the audio-notes-mode.el package.")
 
-(defconst anm/version "0.6" "Version of the audio-notes-mode.el package.")
-
-(defconst anm/version-int 3 "Version of the audio-notes-mode.el package, as an integer.")
+(defconst anm/version-int 4 "Version of the audio-notes-mode.el package, as an integer.")
 
 (defun anm/bug-report ()
   "Opens github issues page in a web browser. Please send me any bugs you find, and please inclue your emacs and anm versions."
@@ -137,8 +137,18 @@ Default is to play only mp4, mp3 and wav, and to exclude hidden files."
   :package-version '(audio-notes-mode . "0.1"))
 
 (defcustom anm/hook-into-org-pull nil
-  "If this is non-nil, `audio-notes-mode' will be called every time (after) you do an org-pull."
-  :type 'boolean
+  "If this is non-nil, `audio-notes-mode' will be called every time (after) you do an `org-mobile-pull'.
+
+If value is 'sometimes, then only activate if is there's an entry
+\"* AUDIO\" on your \"from-mobile.org\" file. If you create this
+headline (somehow) whenever there's a new note, this would avoid
+activating the mode when there are no notes. However, this is
+mostly provided for very slow PC's (where activation might be
+annoying), because the mode already deactivates itself gracefully
+if there are no audio notes."
+  :type '(choice (const :tag "Always, activate on org-pull." t)
+                 (const :tag "Activate on org-pull, only if is there's an entry \"* AUDIO\" on your \"from-mobile.org\" file." 'sometimes)
+                 (const :tag "Don't activate on org-pull." nil))
   :group 'audio-notes-mode
   :package-version '(audio-notes-mode . "0.1"))
 
@@ -210,7 +220,16 @@ To disable this message, edit `anm/display-greeting'."
 ;;;###autoload
 (defadvice org-mobile-pull (after anm/after-org-mobile-pull-advice activate)
   "Check for audio notes after every org-pull."
-  (when anm/hook-into-org-pull (audio-notes-mode 1)))
+  (when (or anm/hook-into-org-pull
+            (and (equal anm/hook-into-org-pull 'sometimes)
+             (save-current-buffer
+               (find-file-literally org-mobile-inbox-for-pull)
+               (save-excursion
+                 (goto-char (point-min))
+                 (when (search-forward "\n* AUDIO" nil t)
+                   (replace-match "")
+                   t)))))
+    (audio-notes-mode 1)))
 
 (defun anm/play-next ()
   "Play next audio note. If no more notes, exit `audio-notes-mode'."
