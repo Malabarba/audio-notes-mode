@@ -75,6 +75,8 @@
 ;; 
 
 ;;; Change Log:
+;; 0.7 - 20130714 - No modeline display if no notes present.
+;; 0.7 - 20130714 - Changed default directory.
 ;; 0.7 - 20130714 - Don't activate after org-pull if there are no notes.
 ;; 0.6 - 20130712 - bugfix.
 ;; 0.5 - 20130712 - Added a default player..
@@ -109,10 +111,11 @@
 (defcustom anm/notes-directory (concat
                                 (if (boundp 'org-directory)
                                     org-directory
-                                  "~/Dropbox/") "Mobile/")
+                                  "~/Dropbox/") "AudioNotes/")
   "Directory where recorded notes are stored."
   :type 'string
-  :group 'audio-notes-mode)
+  :group 'audio-notes-mode
+  :package-version '(audio-notes-mode . "0.7"))
 
 (defcustom anm/goto-file nil
   "File to visit when `audio-notes-mode' is entered. This should be your TODO-list file.
@@ -253,8 +256,10 @@ use for displaying (default is ForestGreen)."
 
 (defun anm/global-mode-string ()
   "ANM string for displaying on the mode-line."
-  (propertize (format "%s Notes" (length (anm/list-files)))
-              'face `(:foreground ,anm/mode-line-color)))
+  (let ((l (anm/list-files)))
+    (when l
+      (propertize (format "%s Notes" (length l))
+                  'face `(:foreground ,anm/mode-line-color)))))
 
 (defun anm/play-next ()
   "Play next audio note. If no more notes, exit `audio-notes-mode'."
@@ -275,9 +280,9 @@ use for displaying (default is ForestGreen)."
 
 If called while a note is already playing, AND if anm/player-command is
 an external command (i.e. it's value is not 'internal), then this
-function stops the playing audio."
+function kills the playing audio."
   (interactive)
-  (if (and anm/process (listp anm/player-command)
+  (if (and anm/current anm/process (listp anm/player-command)
            (eq (process-status anm/process) 'run))
       (kill-process anm/process)
     (let* ((files (anm/list-files))
@@ -301,7 +306,9 @@ function stops the playing audio."
         (audio-notes-mode -1)))))
 
 (defun anm/play-file (file)
-  "Play sound file."
+  "Play sound file.
+
+Also kills the process before starting a new one."
   (unless (file-readable-p file) (audio-notes-mode -1) (error "FILE isn't a file!"))
   (cond
    ((eq anm/player-command 'internal) 
@@ -314,6 +321,8 @@ function stops the playing audio."
 Change `anm/player' to a command name (like \"mplayer\")." file)
          (error (cdr data))))))
    ((listp anm/player-command)
+    (when (and anm/process (eq (process-status anm/process) 'run))
+      (kill-process anm/process))
     (setq anm/process (eval (concatenate 'list
                                          '(start-process "anm/player-command" anm/process-buffer)
                                          (map 'list 'eval anm/player-command))))
