@@ -75,7 +75,7 @@
 ;; 
 
 ;;; Change Log:
-;; 0.7 - 20130713 - Added a third possibility for hooking on org-pull.
+;; 0.7 - 20130714 - Don't activate after org-pull if there are no notes.
 ;; 0.6 - 20130712 - bugfix.
 ;; 0.5 - 20130712 - Added a default player..
 ;; 0.5 - 20130712 - Full package functionality implemented.
@@ -137,17 +137,13 @@ Default is to play only mp4, mp3 and wav, and to exclude hidden files."
   :package-version '(audio-notes-mode . "0.1"))
 
 (defcustom anm/hook-into-org-pull nil
-  "If this is non-nil, `audio-notes-mode' will be called every time (after) you do an `org-mobile-pull'.
+  "Whether we should interact with `org-mobile-pull'.
 
-If value is 'sometimes, then only activate if is there's an entry
-\"* AUDIO\" on your \"from-mobile.org\" file. If you create this
-headline (somehow) whenever there's a new note, this would avoid
-activating the mode when there are no notes. However, this is
-mostly provided for very slow PC's (where activation might be
-annoying), because the mode already deactivates itself gracefully
-if there are no audio notes."
+If this is non-nil, `audio-notes-mode' will be called every
+time (after) you do an `org-mobile-pull' IF there are any audio
+notes in `anm/notes-directory'."
   :type '(choice (const :tag "Always, activate on org-pull." t)
-                 (const :tag "Activate on org-pull, only if is there's an entry \"* AUDIO\" on your \"from-mobile.org\" file." 'sometimes)
+                 ;; (const :tag "Activate on org-pull, only if is there's an entry \"* AUDIO\" on your \"from-mobile.org\" file." 'sometimes)
                  (const :tag "Don't activate on org-pull." nil))
   :group 'audio-notes-mode
   :package-version '(audio-notes-mode . "0.1"))
@@ -206,6 +202,7 @@ mp4, so your decision on which to use should be based on this." "")
 (defvar anm/goto-file-buffer nil "The buffer the user asked to open.")
 (defvar anm/process-buffer   nil "Process buffer.")
 (defvar anm/process          nil "Process.")
+(defvar anm/mode-line-color  "ForestGreen" "")
 (defvar anm/current          nil "Currently played file.")
 (defvar anm/did-visit        nil "Did we visit a file and mess up the configuration.")
 (defvar anm/found-files      nil "")
@@ -218,18 +215,46 @@ To disable this message, edit `anm/display-greeting'."
   "Greeting message when entering mode.")
 
 ;;;###autoload
+(defun anm/display-on-modeline (t-or-nil-or-color)
+  "Interactive: toggle displaying number of audio notes on the modeline.
+Noninteractive: deactivate with a nil argument, activate otherwise.
+
+If T-OR-NIL-OR-COLOR is a string, also sets it as the color to
+use for displaying (default is ForestGreen)."
+  (interactive "i")
+  ;; If interactive, just toggle display.
+  (if (called-interactively-p 'any)
+      (if (member '(:eval (anm/global-mode-string)) global-mode-string)
+          (setq global-mode-string (delete '(:eval (anm/global-mode-string)) global-mode-string))
+        (add-to-list 'global-mode-string '(:eval (anm/global-mode-string))))
+    ;; Else, set according to argument
+    (if (not t-or-nil-or-color)
+        (setq global-mode-string (delete '(:eval (anm/global-mode-string)) global-mode-string))
+      (add-to-list 'global-mode-string '(:eval (anm/global-mode-string)))
+      (when (stringp t-or-nil-or-color)
+        (setq anm/mode-line-color t-or-nil-or-color)))))
+
+;;;###autoload
 (defadvice org-mobile-pull (after anm/after-org-mobile-pull-advice activate)
   "Check for audio notes after every org-pull."
-  (when (or anm/hook-into-org-pull
-            (and (equal anm/hook-into-org-pull 'sometimes)
-             (save-current-buffer
-               (find-file-literally org-mobile-inbox-for-pull)
-               (save-excursion
-                 (goto-char (point-min))
-                 (when (search-forward "\n* AUDIO" nil t)
-                   (replace-match "")
-                   t)))))
+  (when (and anm/hook-into-org-pull
+             (anm/list-files))
+             ;; ;;This code has been aborted. We only activate if there are notes anyway.
+             ;; (or (not (equal anm/hook-into-org-pull 'sometimes))
+             ;;     (if org-mobile-inbox-for-pull
+             ;;      (with-temp-file org-mobile-inbox-for-pull
+             ;;        (insert-file-contents org-mobile-inbox-for-pull)
+             ;;        (goto-char (point-min))
+             ;;        (when (search-forward-regexp "^\\* +AUDIO *$" nil t)
+             ;;          (replace-match "") t))
+             ;;      (error "You set `anm/hook-into-org-pull' to %S, but your `org-mobile-inbox-for-pull' variable isn't set!"
+             ;;             anm/hook-into-org-pull)))
     (audio-notes-mode 1)))
+
+(defun anm/global-mode-string ()
+  "ANM string for displaying on the mode-line."
+  (propertize (format "%s Notes" (length (anm/list-files)))
+              'face `(:foreground ,anm/mode-line-color)))
 
 (defun anm/play-next ()
   "Play next audio note. If no more notes, exit `audio-notes-mode'."
