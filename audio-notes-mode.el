@@ -75,6 +75,7 @@
 ;; 
 
 ;;; Change Log:
+;; 0.7 - 20130714 - anm/delete-command.
 ;; 0.7 - 20130714 - No modeline display if no notes present.
 ;; 0.7 - 20130714 - Changed default directory.
 ;; 0.7 - 20130714 - Don't activate after org-pull if there are no notes.
@@ -261,14 +262,24 @@ use for displaying (default is ForestGreen)."
       (propertize (format "%s Notes" (length l))
                   'face `(:foreground ,anm/mode-line-color)))))
 
+(defcustom anm/delete-command '(delete-file file t)
+  "Command which will be used to delete a file.
+
+It is evaluated with (eval anm/delete-command), where 'file will
+be the (full) path of the file to be deleted."
+  :type 'sexp
+  :group 'audio-notes-mode
+  :package-version '(audio-notes-mode . "0.7"))
+
 (defun anm/play-next ()
   "Play next audio note. If no more notes, exit `audio-notes-mode'."
   (interactive)
   ;; Delete previously played note
   (if (file-readable-p anm/current)
       (if (file-writable-p anm/current)
-          (progn (delete-file anm/current t)
-                 (setq anm/current nil))
+          (let ((file anm/current))
+            (eval anm/delete-command)
+            (setq anm/current nil))
         (audio-notes-mode -1)
         (error "File %s can't be deleted.\nCheck file permissions and fix this.\n(Exiting)" anm/current))
     (warn "File %s not found for deletion." anm/current))
