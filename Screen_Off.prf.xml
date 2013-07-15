@@ -1,0 +1,31 @@
+<TaskerData sr="" dvi="1" tv="4.1u3m">
+	<Profile sr="prof105" ve="2">
+		<cdate>1362000688649</cdate>
+		<edate>1362275939316</edate>
+		<id>105</id>
+		<mid0>107</mid0>
+		<nme>Screen Off</nme>
+		<Event sr="con0" ve="2">
+			<code>210</code>
+			<pri>1</pri>
+		</Event>
+	</Profile>
+	<Task sr="task107">
+		<cdate>1362000719690</cdate>
+		<edate>1373794675255</edate>
+		<id>107</id>
+		<nme>Recording Finish</nme>
+		<Action sr="act0" ve="3">
+			<code>549</code>
+			<lhs>%Recording</lhs>
+			<op>9</op>
+			<rhs></rhs>
+			<Str sr="arg0" ve="3">%Recording</Str>
+			<Int sr="arg1" val="0"/>
+		</Action>
+		<Img sr="icn" ve="2">
+			<nme>device_access_mic_muted</nme>
+			<pkg>net.dinglisch.android.ipack.holdlightmd</pkg>
+		</Img>
+	</Task>
+</TaskerData>
