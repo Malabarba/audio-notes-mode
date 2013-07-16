@@ -11,7 +11,7 @@
 
 ;;; Commentary:
 ;;
-;; `audio-notes-mode' is a way to managed small audio recordings that
+;; `audio-notes-mode' is a way to manage small audio recordings that
 ;; you make in order to record thoughts.
 ;;
 ;; After much struggle, I finally decided to stop trying to make

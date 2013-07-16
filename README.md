@@ -3,11 +3,12 @@ audio-notes-mode
 
 Emacs mode to play audio notes synced from somewhere else.
 
+![Screenshot 1](http://bruce-connor.github.io/control-pianobar/anm/screenshot-2013-07-16--095017.jpg)
 
 Commentary:
 ===
 
-`audio-notes-mode` is a way to managed small audio recordings that you
+`audio-notes-mode` is a way to manage small audio recordings that you
 make in order to record thoughts.
 
 After much struggle, I finally decided to stop trying to make speech
@@ -21,6 +22,9 @@ message 1/3 of the time.
 
 A tasker profile (which records and uploads these notes) is also
 provided at the github page.
+
+Workflow:
+===
 
 The idea is that you sync voice notes you record on your smartphone
 into a directory on your PC. But you're free to use it in other ways.
@@ -69,4 +73,3 @@ This program is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTYwithout even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 General Public License for more details.
-
