@@ -32,7 +32,7 @@ into a directory on your PC. But you're free to use it in other ways.
 When you activate this mode, it will play the first audio note in a
 specific directory and wait for you to write it down. Once you're
 finished, just call the next note with `anm/play-next` which is bound to `C-c C-j`. When you do
-this, `audio-notes-mode` will DELETE the note which was already played
+this, `audio-notes-mode` will *DELETE* the note which was already played
 and start playing the next one. Once you've gone through all of them,
 `audio-notes-mode` deactivates itself.
 
@@ -59,6 +59,13 @@ Then just choose how you want to activate it.
 
 If you installed manually, first require the feature with:
 then use one of the methods above.
+
+Customizations:
+===
+
+1) If you don't want notes to be deleted (maybe you want to back them up somewhere) you can edit the variable `anm/delete-command`. Just make sure this command does't leave them in the same folder, othervise ANM won't work.
+
+2) You can have the current number of unread notes be displayed in the mode-line, just see the command `anm/display-on-modeline`.
 
 License:
 ===
