@@ -31,7 +31,7 @@ into a directory on your PC. But you're free to use it in other ways.
 
 When you activate this mode, it will play the first audio note in a
 specific directory and wait for you to write it down. Once you're
-finished, just call the next note with \[anm/play-next] which is bound to `C-c C-j`. When you do
+finished, just call the next note with `anm/play-next` which is bound to `C-c C-j`. When you do
 this, `audio-notes-mode` will DELETE the note which was already played
 and start playing the next one. Once you've gone through all of them,
 `audio-notes-mode` deactivates itself.
