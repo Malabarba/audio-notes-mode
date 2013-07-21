@@ -4,7 +4,7 @@
 
 ;; Author: Artur Malabarba <bruce.connor.am@gmail.com>
 ;; URL: http://github.com/Bruce-Connor/audio-notes-mode
-;; Version: 0.7
+;; Version: 1.0
 ;; Keywords: hypermedia convenience
 ;; ShortName: anm
 ;; Separator: /
@@ -75,6 +75,7 @@
 ;; 
 
 ;;; Change Log:
+;; 1.0 - 20130721 - Implemented mplayer controls from https://github.com/markhepburn/mplayer-mode.
 ;; 0.7 - 20130714 - anm/delete-command.
 ;; 0.7 - 20130714 - No modeline display if no notes present.
 ;; 0.7 - 20130714 - Changed default directory.
@@ -86,9 +87,9 @@
 
 ;;; Code:
 
-(defconst anm/version "0.7" "Version of the audio-notes-mode.el package.")
+(defconst anm/version "1.0" "Version of the audio-notes-mode.el package.")
 
-(defconst anm/version-int 4 "Version of the audio-notes-mode.el package, as an integer.")
+(defconst anm/version-int 5 "Version of the audio-notes-mode.el package, as an integer.")
 
 (defun anm/bug-report ()
   "Opens github issues page in a web browser. Please send me any bugs you find, and please inclue your emacs and anm versions."
@@ -159,7 +160,11 @@ notes in `anm/notes-directory'."
   :package-version '(audio-notes-mode . "0.1"))
 
 (defcustom anm/before-play-hook '()
-  "Hooks run every time a note is played (immediately before playing it)."
+  "Hooks run every time a note is played (immediately before playing it).
+
+I personally recommend setting it to something like:
+ (lambda () (goto-char (point-max))
+      (insert \"\\n\\n* \"))"
   :type 'hook
   :group 'audio-notes-mode
   :package-version '(audio-notes-mode . "0.1"))
@@ -217,6 +222,54 @@ mp4, so your decision on which to use should be based on this." "")
 \\[anm/play-current]: Replays this audio note.
 To disable this message, edit `anm/display-greeting'."
   "Greeting message when entering mode.")
+
+;;; Code borrowed from markhepburn's mplayer-mode at https://github.com/markhepburn/mplayer-mode
+(defcustom anm/default-seek-step 5
+  "The number of seconds that the skip command will use."
+  :type 'integer
+  :group 'audio-notes-mode
+  :version '(audio-notes-mode . "1.0"))
+
+;;; Utilities:
+(defun anm/-mplayer-send (cmd)
+  (if (anm/-mplayer-p)
+      (if (anm/-is-alive-p)
+          (process-send-string anm/process (concat cmd "\n"))
+        (message "There's nothing playing!"))
+    (message "Not using mplayer!")))
+
+(defun anm/-mplayer-parse-seconds (seconds)
+  (cond
+   ((null seconds) anm/default-seek-step)
+   ((numberp seconds) seconds)
+   ((listp seconds)
+    (* anm/default-seek-step (1+ (log (abs (car seconds)) 4))))))
+
+;;; Interactive Commands:
+(defun anm/mplayer-seek-forward (N)
+  "Skip forward in the recording by `anm/default-seek-step' seconds.
+
+With numeric prefix N, skip that many times the default step.
+With raw prefix N, skip that many times +1."
+  (interactive "P")
+  (let ((seconds (anm/-mplayer-parse-seconds N)))
+    (anm/-mplayer-send (format "seek %d 0" seconds))))
+(defun anm/mplayer-seek-backward (N)
+  "Skip backward in the recording by `anm/default-seek-step' seconds.
+
+With numeric prefix N, skip that many times the default step.
+With raw prefix N, skip that many times +1."
+  (interactive "P")
+  (anm/mplayer-seek-forward (- (anm/-mplayer-parse-seconds N))))
+
+;;; End of borrowed functions
+
+(defun anm/-is-mplayer-p ()
+  "Checks if process is alive and if we're using mplayer. "
+  (string= (car anm/player-command) "mplayer"))
+
+(defun anm/-is-alive-p ()
+  (and anm/process (eq (process-status anm/process) 'run)))
 
 ;;;###autoload
 (defun anm/display-on-modeline (t-or-nil-or-color)
@@ -286,16 +339,18 @@ be the (full) path of the file to be deleted."
   ;; Play the next one. If there isn't one, just exit play-notes-mode.
   (anm/play-current))
 
-(defun anm/play-current ()
+(defalias 'anm/play-current 'anm/play-pause-current)
+(defun anm/play-pause-current ()
   "Play current audio note.
 
-If called while a note is already playing, AND if anm/player-command is
-an external command (i.e. it's value is not 'internal), then this
-function kills the playing audio."
+If called while a note is already playing, AND if
+`anm/player-command' is an external command (i.e. it's value is
+not 'internal), then this function pauses the playing audio."
   (interactive)
-  (if (and anm/current anm/process (listp anm/player-command)
-           (eq (process-status anm/process) 'run))
-      (kill-process anm/process)
+  (if (and anm/current (anm/-is-alive-p)) 
+      (if (anm/-is-mplayer-p)
+          (anm/-mplayer-send "pause")
+        (anm/stop))
     (let* ((files (anm/list-files))
            (file (or anm/current (car files)))
            (sn (if file (file-name-nondirectory file) "")))
@@ -315,6 +370,13 @@ function kills the playing audio."
             (run-hooks anm/after-play-hook))
         (message "No more notes. Exiting `audio-notes-mode'.")
         (audio-notes-mode -1)))))
+
+(defun anm/stop ()
+  "Stop current note (by killing the player)."
+  (interactive)
+  (if (anm/-is-alive-p)
+      (kill-process anm/process)
+    (message "There's nothing playing!")))
 
 (defun anm/play-file (file)
   "Play sound file.
@@ -356,7 +418,10 @@ was already played and start playing the next one. Once you've
 gone through all of them, `audio-notes-mode' deactivates itself."
   nil anm/lighter
   '(("\n" . anm/play-next)
-    ("" . anm/play-current)
+    ("" . anm/play-pause-current)
+    ("" . anm/play-next)
+    ("" . anm/play-pause-current)
+    ("" . anm/stop)
     ("" . audio-notes-mode))
   :global t
   :group 'audio-notes-mode
@@ -410,7 +475,10 @@ gone through all of them, `audio-notes-mode' deactivates itself."
         (condition-case nil        ;Don't bug me if it's the only window
             (delete-window (get-buffer-window anm/dired-buffer))
           (error nil)))
-      (bury-buffer anm/dired-buffer))))
+      (bury-buffer anm/dired-buffer)))
+  (when (anm/-mplayer-p)
+    (define-key audio-notes-mode-map "" 'anm/mplayer-seek-forward)
+    (define-key audio-notes-mode-map "" 'anm/mplayer-seek-backward)))
 
 (provide 'audio-notes-mode)
 ;;; audio-notes-mode.el ends here.
