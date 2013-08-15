@@ -232,7 +232,7 @@ To disable this message, edit `anm/display-greeting'."
 
 ;;; Utilities:
 (defun anm/-mplayer-send (cmd)
-  (if (anm/-mplayer-p)
+  (if (anm/-is-mplayer-p)
       (if (anm/-is-alive-p)
           (process-send-string anm/process (concat cmd "\n"))
         (message "There's nothing playing!"))
@@ -365,9 +365,9 @@ not 'internal), then this function pauses the playing audio."
               (search-forward sn)
               (revert-buffer))
             (with-current-buffer anm/process-buffer (erase-buffer))
-            (run-hooks anm/before-play-hook)
+            (run-hooks 'anm/before-play-hook)
             (anm/play-file file)
-            (run-hooks anm/after-play-hook))
+            (run-hooks 'anm/after-play-hook))
         (message "No more notes. Exiting `audio-notes-mode'.")
         (audio-notes-mode -1)))))
 
@@ -476,7 +476,7 @@ gone through all of them, `audio-notes-mode' deactivates itself."
             (delete-window (get-buffer-window anm/dired-buffer))
           (error nil)))
       (bury-buffer anm/dired-buffer)))
-  (when (anm/-mplayer-p)
+  (when (anm/-is-mplayer-p)
     (define-key audio-notes-mode-map "" 'anm/mplayer-seek-forward)
     (define-key audio-notes-mode-map "" 'anm/mplayer-seek-backward)))
 
