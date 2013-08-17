@@ -4,7 +4,7 @@
 
 ;; Author: Artur Malabarba <bruce.connor.am@gmail.com>
 ;; URL: http://github.com/Bruce-Connor/audio-notes-mode
-;; Version: 1.0
+;; Version: 1.1
 ;; Keywords: hypermedia convenience
 ;; ShortName: anm
 ;; Separator: /
@@ -75,6 +75,7 @@
 ;; 
 
 ;;; Change Log:
+;; 1.1 - 20130817 - Fix -is-mplayer
 ;; 1.0 - 20130721 - Implemented mplayer controls from https://github.com/markhepburn/mplayer-mode.
 ;; 0.7 - 20130714 - anm/delete-command.
 ;; 0.7 - 20130714 - No modeline display if no notes present.
@@ -87,10 +88,8 @@
 
 ;;; Code:
 
-(defconst anm/version "1.0" "Version of the audio-notes-mode.el package.")
-
-(defconst anm/version-int 5 "Version of the audio-notes-mode.el package, as an integer.")
-
+(defconst anm/version "1.1" "Version of the audio-notes-mode.el package.")
+(defconst anm/version-int 6 "Version of the audio-notes-mode.el package, as an integer.")
 (defun anm/bug-report ()
   "Opens github issues page in a web browser. Please send me any bugs you find, and please inclue your emacs and anm versions."
   (interactive)
@@ -266,7 +265,7 @@ With raw prefix N, skip that many times +1."
 
 (defun anm/-is-mplayer-p ()
   "Checks if process is alive and if we're using mplayer. "
-  (string= (car anm/player-command) "mplayer"))
+  (and (listp anm/player-command) (string= (car anm/player-command) "mplayer")))
 
 (defun anm/-is-alive-p ()
   (and anm/process (eq (process-status anm/process) 'run)))
@@ -415,7 +414,9 @@ specific directory and wait for you to write it down. Once you're
 finished, just call the next note with C-c C-j.
 When you do this, `audio-notes-mode' will DELETE the note which
 was already played and start playing the next one. Once you've
-gone through all of them, `audio-notes-mode' deactivates itself."
+gone through all of them, `audio-notes-mode' deactivates itself.
+
+\\{audio-notes-mode-map}"
   nil anm/lighter
   '(("\n" . anm/play-next)
     ("" . anm/play-pause-current)
