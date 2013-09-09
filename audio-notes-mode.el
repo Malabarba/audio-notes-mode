@@ -4,7 +4,7 @@
 
 ;; Author: Artur Malabarba <bruce.connor.am@gmail.com>
 ;; URL: http://github.com/Bruce-Connor/audio-notes-mode
-;; Version: 1.1
+;; Version: 1.1.1
 ;; Keywords: hypermedia convenience
 ;; ShortName: anm
 ;; Separator: /
@@ -75,6 +75,7 @@
 ;; 
 
 ;;; Change Log:
+;; 1.1.1 - 20130909 - Fix 'internal bug
 ;; 1.1 - 20130817 - Fix -is-mplayer
 ;; 1.0 - 20130721 - Implemented mplayer controls from https://github.com/markhepburn/mplayer-mode.
 ;; 0.7 - 20130714 - anm/delete-command.
@@ -88,8 +89,8 @@
 
 ;;; Code:
 
-(defconst anm/version "1.1" "Version of the audio-notes-mode.el package.")
-(defconst anm/version-int 6 "Version of the audio-notes-mode.el package, as an integer.")
+(defconst anm/version "1.1.1" "Version of the audio-notes-mode.el package.")
+(defconst anm/version-int 7 "Version of the audio-notes-mode.el package, as an integer.")
 (defun anm/bug-report ()
   "Opens github issues page in a web browser. Please send me any bugs you find, and please inclue your emacs and anm versions."
   (interactive)
@@ -197,7 +198,7 @@ mp4, so your decision on which to use should be based on this." "")
                                ((executable-find "mplayer") anm/default-mplayer)
                                ((executable-find "smplayer") anm/default-smplayer)
                                ((executable-find "vlc") anm/default-vlc)
-                               'internal)
+                               (t 'internal))
   (format anm/player-command-documentation anm/default-mplayer)
   :type '(choice (const :tag "Emacs internal player" internal)
                  (cons (string :tag "Executable name")
