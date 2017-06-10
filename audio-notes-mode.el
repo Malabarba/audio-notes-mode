@@ -128,7 +128,7 @@ when you activate `audio-notes-mode'."
   :type '(choice string nil)
   :group 'audio-notes-mode)
 
-(defcustom anm/file-regexp "^[^\\.].*\.\\(mp[34]\\|wav\\|3ga\\|3gpp\\)$"
+(defcustom anm/file-regexp "^[^\\.].*\.\\(mp[34]\\|wav\\|3ga\\|3gpp\\|m4a\\)$"
      "Regexp which filenames must match to be managed by OAN.
 
 Default is to play only mp4, mp3, wav and 3ga, and to exclude hidden files."
